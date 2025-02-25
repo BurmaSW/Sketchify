@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Store Clone</title>
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --background-color: #f8f9fa;
+            --header-color: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+        }
+
+        /* Header Styles */
+        header {
+            background: var(--header-color);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            display: flex;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 2rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 600px;
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+        }
+
+        /* Categories */
+        .categories {
+            background: var(--header-color);
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .category-list {
+            display: flex;
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow-x: auto;
+        }
+
+        .category-chip {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        /* App Grid */
+        .app-grid {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        /* App Card */
+        .app-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .app-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .app-icon {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .app-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #202124;
+        }
+
+        .app-developer {
+            color: #5f6368;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stars {
+            color: #fbbc04;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .screenshots {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .screenshot-img {
+            height: 200px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .nav-container {
+                gap: 1rem;
+            }
+            
+            .search-bar {
+                padding: 0.5rem;
+            }
+            
+            .app-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="nav-container">
+            <div class="logo">PlayStore</div>
+            <input type="text" class="search-bar" placeholder="Search apps...">
+        </nav>
+    </header>
+
+    <div class="categories">
+        <div class="category-list">
+            <div class="category-chip">Games</div>
+            <div class="category-chip">Productivity</div>
+            <div class="category-chip">Social</div>
+            <div class="category-chip">Education</div>
+        </div>
+    </div>
+
+    <main>
+        <section class="featured-apps">
+            <h2>Featured Apps</h2>
+            <div class="app-grid" id="appContainer"></div>
+        </section>
+    </main>
+
+    <!-- App Detail Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button onclick="closeModal()" style="float: right">×</button>
+            <img id="modalAppIcon" class="app-icon" alt="App Icon">
+            <h1 id="modalTitle"></h1>
+            <div class="app-rating">
+                <div class="stars">★★★★☆</div>
+                <span id="modalRating"></span>
+            </div>
+            <a id="downloadLink" class="download-btn">Install</a>
+            <div class="screenshots" id="screenshotsContainer"></div>
+            <p id="modalDescription"></p>
+            <h3>Additional Information</h3>
+            <div id="additionalInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        const JSON_URL = 'https://raw.githubusercontent.com/BurmaSW/AppStore/refs/heads/main/filestores.json';
+
+        // Fetch apps from GitHub
+        async function loadApps() {
+            try {
+                const response = await fetch(JSON_URL);
+                const apps = await response.json();
+                renderApps(apps);
+                setupSearch();
+                setupCategories();
+            } catch (error) {
+                console.error('Error loading apps:', error);
+            }
+        }
+
+        // Render apps in grid
+        function renderApps(apps) {
+            const container = document.getElementById('appContainer');
+            container.innerHTML = '';
+
+            apps.forEach(app => {
+                const card = document.createElement('div');
+                card.className = 'app-card';
+                card.innerHTML = `
+                    <img src="${app.app_logo}" class="app-icon" alt="${app.app_name}">
+                    <h3 class="app-title">${app.app_name}</h3>
+                    <p class="app-developer">${app.developer}</p>
+                    <div class="app-rating">
+                        <div class="stars">${renderStars(app.rating)}</div>
+                        <span>${app.rating}</span>
+                    </div>
+                    <p class="app-description">${app.appdetail.substring(0, 60)}...</p>
+                `;
+                card.addEventListener('click', () => showAppDetails(app));
+                container.appendChild(card);
+            });
+        }
+
+        // Show app details modal
+        function showAppDetails(app) {
+            const modal = document.getElementById('modal');
+            document.getElementById('modalTitle').textContent = app.app_name;
+            document.getElementById('modalAppIcon').src = app.app_logo;
+            document.getElementById('modalDescription').textContent = app.appdetail;
+            document.getElementById('downloadLink').href = app.downloadlink;
+            
+            // Render screenshots
+            const screenshotsContainer = document.getElementById('screenshotsContainer');
+            screenshotsContainer.innerHTML = app.expphoto.map(img => `
+                <img src="${img}" class="screenshot-img" alt="Screenshot">
+            `).join('');
+
+            // Additional info
+            document.getElementById('additionalInfo').innerHTML = `
+                <p>Size: ${app.size || 'N/A'}</p>
+                <p>Downloads: ${app.downloads || 'N/A'}</p>
+                <p>Version: ${app.version || 'N/A'}</p>
+            `;
+
+            modal.style.display = 'flex';
+        }
+
+        // Helper functions
+        function renderStars(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5 ? 1 : 0;
+            return '★'.repeat(fullStars) + (halfStar ? '½' : '') + '☆'.repeat(5 - fullStars - halfStar);
+        }
+
+        function setupSearch() {
+            const searchBar = document.querySelector('.search-bar');
+            searchBar.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                filterApps(searchTerm);
+            });
+        }
+
+        function setupCategories() {
+            document.querySelectorAll('.category-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const category = chip.textContent;
+                    filterApps('', category);
+                });
+            });
+        }
+
+        async function filterApps(searchTerm = '', category = '') {
+            const response = await fetch(JSON_URL);
+            const apps = await response.json();
+            
+            const filtered = apps.filter(app => {
+                const matchesSearch = app.app_name.toLowerCase().includes(searchTerm) ||
+                    app.appdetail.toLowerCase().includes(searchTerm);
+                const matchesCategory = !category || app.category === category.toLowerCase();
+                return matchesSearch && matchesCategory;
+            });
+            
+            renderApps(filtered);
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Initialize
+        loadApps();
+    </script>
+</body>
+</html>
